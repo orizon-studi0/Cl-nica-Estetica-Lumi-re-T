@@ -1,0 +1,6 @@
+{
+  "name": "Clínica Lumière Estética",
+  "description": "Landing page de demonstração da Clínica Lumière Estética em Moema, São Paulo - SP. Tratamentos estéticos faciais e corporais exclusivos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
