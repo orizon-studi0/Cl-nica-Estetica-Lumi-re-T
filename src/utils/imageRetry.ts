@@ -1,48 +1,41 @@
 /**
- * Image helpers for local static asset mapping and fallback configuration
+ * Image helpers for local static asset mapping and Plan B fallback configuration
  */
 
 export interface ImageFallbackConfig {
-  icon: string;
   label: string;
   path: string;
 }
 
 export const CLINIC_IMAGES: Record<string, ImageFallbackConfig> = {
   recepcao: {
-    icon: 'reception',
-    label: 'Recepção Lumière',
-    path: 'imagens/recepcao.jpg'
+    label: 'Recepção',
+    path: 'images/recepcao.jpg'
   },
   espera: {
-    icon: 'sofa',
     label: 'Lounge de Espera',
-    path: 'imagens/espera.jpg'
+    path: 'images/espera.jpg'
   },
   procedimentos: {
-    icon: 'maca',
     label: 'Sala de Procedimentos',
-    path: 'imagens/procedimentos.jpg'
+    path: 'images/procedimentos.jpg'
   },
   consultorio: {
-    icon: 'mesa',
     label: 'Consultório de Avaliação',
-    path: 'imagens/consultorio.jpg'
+    path: 'images/consultorio.jpg'
   },
   dermocosmeticos: {
-    icon: 'frasco',
     label: 'Linha de Dermocosméticos',
-    path: 'imagens/dermocosmeticos.jpg'
+    path: 'images/dermocosmeticos.jpg'
   },
   circulacao: {
-    icon: 'porta',
     label: 'Circulação & Arquitetura',
-    path: 'imagens/circulacao.jpg'
+    path: 'images/circulacao.jpg'
   }
 };
 
 export function isValidImagePath(path: string): boolean {
-  return typeof path === 'string' && path.startsWith('imagens/') && path.endsWith('.jpg');
+  return typeof path === 'string' && path.startsWith('images/') && path.endsWith('.jpg');
 }
 
 export function getImageFallback(name: string): ImageFallbackConfig | undefined {

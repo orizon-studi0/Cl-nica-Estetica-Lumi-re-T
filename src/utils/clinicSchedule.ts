@@ -6,13 +6,16 @@
  * - Sunday (0): Closed
  */
 
+export type ScheduleDayGroup = 'weekday' | 'saturday' | 'sunday';
+
 export interface ClinicStatusResult {
   isOpen: boolean;
   label: string;
+  pillLabel: string;
+  todayGroup: ScheduleDayGroup;
 }
 
 export function getClinicStatus(now: Date = new Date()): ClinicStatusResult {
-  // Convert to America/Sao_Paulo local parts reliably using Intl
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Sao_Paulo',
     weekday: 'short',
@@ -47,25 +50,59 @@ export function getClinicStatus(now: Date = new Date()): ClinicStatusResult {
   if (day >= 1 && day <= 5) {
     const closeMinutes = 19 * 60; // 19:00
     if (totalMinutes >= openMinutes && totalMinutes < closeMinutes) {
-      return { isOpen: true, label: 'Aberto agora, fecha às 19h' };
+      return {
+        isOpen: true,
+        label: 'Aberto agora, fecha às 19h',
+        pillLabel: 'Aberto agora',
+        todayGroup: 'weekday'
+      };
     }
     if (totalMinutes < openMinutes) {
-      return { isOpen: false, label: 'Fechado, abre hoje às 9h' };
+      return {
+        isOpen: false,
+        label: 'Fechado, abre hoje às 9h',
+        pillLabel: 'Fechado, abre às 9h',
+        todayGroup: 'weekday'
+      };
     }
-    return { isOpen: false, label: 'Fechado, abre amanhã às 9h' };
+    return {
+      isOpen: false,
+      label: 'Fechado, abre amanhã às 9h',
+      pillLabel: 'Fechado, abre amanhã às 9h',
+      todayGroup: 'weekday'
+    };
   }
 
   if (day === 6) {
     const closeMinutes = 14 * 60; // 14:00
     if (totalMinutes >= openMinutes && totalMinutes < closeMinutes) {
-      return { isOpen: true, label: 'Aberto agora, fecha às 14h' };
+      return {
+        isOpen: true,
+        label: 'Aberto agora, fecha às 14h',
+        pillLabel: 'Aberto agora',
+        todayGroup: 'saturday'
+      };
     }
     if (totalMinutes < openMinutes) {
-      return { isOpen: false, label: 'Fechado, abre hoje às 9h' };
+      return {
+        isOpen: false,
+        label: 'Fechado, abre hoje às 9h',
+        pillLabel: 'Fechado, abre às 9h',
+        todayGroup: 'saturday'
+      };
     }
-    return { isOpen: false, label: 'Fechado, abre segunda às 9h' };
+    return {
+      isOpen: false,
+      label: 'Fechado, abre segunda às 9h',
+      pillLabel: 'Fechado, abre segunda às 9h',
+      todayGroup: 'saturday'
+    };
   }
 
-  // Sunday (day === 0)
-  return { isOpen: false, label: 'Fechado, abre amanhã às 9h' };
+  return {
+    isOpen: false,
+    label: 'Fechado, abre amanhã às 9h',
+    pillLabel: 'Fechado, abre amanhã às 9h',
+    todayGroup: 'sunday'
+  };
 }

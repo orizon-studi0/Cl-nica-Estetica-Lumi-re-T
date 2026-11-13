@@ -1,633 +1,583 @@
 /* ==========================================================================
-   Clínica Lumière Estética — Interações, Movimento e Lógica Clínica
+   Clínica Lumière Estética — JavaScript Puro (Zero Dependências)
    ========================================================================== */
 
 (function () {
   'use strict';
 
+  const WHATSAPP_NUMBER = '5511999998888';
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const isTouchDevice = window.matchMedia('(hover: none), (pointer: coarse)').matches || 'ontouchstart' in window;
-  const isDesktop = () => window.innerWidth >= 1100;
 
-  /* 1. IMAGENS E ESPAÇOS RESERVADOS */
+  /* 1. PLANO B DE IMAGENS */
   function setupImageFallbacks() {
-    const imgs = document.querySelectorAll('.media-frame img');
-    imgs.forEach((img) => {
-      const frame = img.closest('.media-frame');
-      if (!frame) return;
+    const containers = document.querySelectorAll('.media-arch, .hero-media');
+    containers.forEach((box) => {
+      const img = box.querySelector('img');
+      if (!img) return;
 
-      const markBroken = () => frame.classList.add('is-broken');
-      const markReady = () => frame.classList.remove('is-broken');
+      const onFail = () => box.classList.add('is-broken');
+      const onPass = () => box.classList.remove('is-broken');
 
       if (img.complete) {
-        if (img.naturalWidth === 0) markBroken();
-        else markReady();
+        if (img.naturalWidth === 0) onFail();
+        else onPass();
       } else {
         img.addEventListener('load', () => {
-          if (img.naturalWidth === 0) markBroken();
-          else markReady();
+          if (img.naturalWidth === 0) onFail();
+          else onPass();
         });
-        img.addEventListener('error', markBroken);
+        img.addEventListener('error', onFail);
       }
     });
   }
 
-  /* 2. HEADER DINÂMICO, BARRA DE PROGRESSO E LINK ATIVO */
-  function setupScrollChrome() {
+  /* 2. HEADER AO ROLAR + MENU MOBILE + SCROLLSPY */
+  function setupHeaderAndMenu() {
     const header = document.getElementById('siteHeader');
-    const progressBar = document.getElementById('readingProgress');
-    const navLinks = document.querySelectorAll('.desktop-nav a, .mobile-menu-links a');
+    const toggle = document.getElementById('menuToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const desktopLinks = document.querySelectorAll('.desktop-nav a');
     const sections = document.querySelectorAll('main section[id]');
-    const waPill = document.getElementById('waFloatPill');
-    const contactSection = document.getElementById('localizacao');
 
-    let lastScrollY = window.scrollY;
-    let isContactVisible = false;
-
-    if (waPill && contactSection && 'IntersectionObserver' in window) {
-      const contactObserver = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            isContactVisible = entry.isIntersecting;
-            waPill.classList.toggle('is-hidden-by-form', isContactVisible);
-          });
-        },
-        { threshold: 0.15 }
-      );
-      contactObserver.observe(contactSection);
-    }
-
-    function onScroll() {
-      const currentY = window.scrollY;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = docHeight > 0 ? Math.min(Math.max(currentY / docHeight, 0), 1) : 0;
-
-      if (progressBar) {
-        progressBar.style.transform = `scaleX(${progress})`;
-      }
-
+    function updateScroll() {
+      const y = window.scrollY;
       if (header) {
-        header.classList.toggle('is-scrolled', currentY > 40);
-        const menuOpen = document.getElementById('mobileMenuOverlay')?.classList.contains('is-open');
-        if (!menuOpen && currentY > 140 && currentY > lastScrollY + 4) {
-          header.classList.add('is-hidden');
-        } else if (currentY < lastScrollY - 4 || currentY <= 140) {
-          header.classList.remove('is-hidden');
-        }
+        header.classList.toggle('is-scrolled', y > 36);
       }
 
-      if (waPill) {
-        waPill.classList.toggle('is-visible', currentY > 360 && !isContactVisible);
-      }
-
-      // ScrollSpy para link ativo no menu
-      const probeY = currentY + 180;
+      const probe = y + 140;
       let activeId = '';
       sections.forEach((sec) => {
-        if (probeY >= sec.offsetTop && probeY < sec.offsetTop + sec.offsetHeight) {
+        if (probe >= sec.offsetTop && probe < sec.offsetTop + sec.offsetHeight) {
           activeId = sec.id;
         }
       });
 
-      navLinks.forEach((link) => {
-        const href = link.getAttribute('href');
-        link.classList.toggle('is-active', href === `#${activeId}`);
+      desktopLinks.forEach((link) => {
+        link.classList.toggle('is-active', link.getAttribute('href') === `#${activeId}`);
       });
-
-      lastScrollY = currentY;
     }
 
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-  }
+    window.addEventListener('scroll', updateScroll, { passive: true });
+    updateScroll();
 
-  /* 3. MENU MOBILE EM TELA CHEIA */
-  function setupMobileMenu() {
-    const toggle = document.getElementById('menuToggle');
-    const overlay = document.getElementById('mobileMenuOverlay');
-    const header = document.getElementById('siteHeader');
-    if (!toggle || !overlay) return;
+    if (!toggle || !mobileMenu) return;
 
-    const links = overlay.querySelectorAll('a');
-
-    function setOpen(open) {
-      overlay.classList.toggle('is-open', open);
-      overlay.setAttribute('aria-hidden', String(!open));
+    function setMenuOpen(open) {
+      mobileMenu.classList.toggle('is-open', open);
+      mobileMenu.setAttribute('aria-hidden', String(!open));
       toggle.setAttribute('aria-expanded', String(open));
       toggle.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
       document.body.style.overflow = open ? 'hidden' : '';
-      if (open && header) header.classList.remove('is-hidden');
+      if (open && header) header.classList.add('is-scrolled');
+      else updateScroll();
     }
 
     toggle.addEventListener('click', () => {
-      const isOpen = overlay.classList.contains('is-open');
-      setOpen(!isOpen);
+      setMenuOpen(!mobileMenu.classList.contains('is-open'));
     });
 
-    links.forEach((link) => {
-      link.addEventListener('click', () => setOpen(false));
+    mobileMenu.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => setMenuOpen(false));
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && overlay.classList.contains('is-open')) {
-        setOpen(false);
+      if (e.key === 'Escape' && mobileMenu.classList.contains('is-open')) {
+        setMenuOpen(false);
         toggle.focus();
       }
     });
   }
 
-  /* 4. CONTADORES ANIMADOS (SOBRE) */
-  function setupCounters() {
-    const counters = document.querySelectorAll('[data-counter]');
-    if (!counters.length) return;
+  /* 3. BARRA INFERIOR MOBILE (ESCONDE PERTO DO FORMULÁRIO) */
+  function setupMobileBar() {
+    const bar = document.getElementById('mobileBottomBar');
+    const contactSec = document.getElementById('localizacao');
+    if (!bar || !contactSec || !('IntersectionObserver' in window)) return;
 
-    const animateValue = (el) => {
-      const target = parseInt(el.getAttribute('data-counter') || '0', 10);
-      if (prefersReducedMotion) {
-        el.textContent = String(target);
-        return;
-      }
-
-      const duration = 900;
-      const startTime = performance.now();
-
-      function step(now) {
-        const elapsed = Math.min((now - startTime) / duration, 1);
-        const eased = 1 - Math.pow(1 - elapsed, 3);
-        const val = Math.round(eased * target);
-        el.textContent = String(val);
-        if (elapsed < 1) requestAnimationFrame(step);
-      }
-
-      requestAnimationFrame(step);
-    };
-
-    if ('IntersectionObserver' in window) {
-      const obs = new IntersectionObserver(
-        (entries, observer) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              animateValue(entry.target);
-              observer.unobserve(entry.target);
-            }
-          });
-        },
-        { threshold: 0.4 }
-      );
-      counters.forEach((c) => obs.observe(c));
-    } else {
-      counters.forEach(animateValue);
-    }
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          bar.classList.toggle('is-hidden', entry.isIntersecting);
+        });
+      },
+      { threshold: 0.08 }
+    );
+    obs.observe(contactSec);
   }
 
-  /* 5. TRATAMENTOS (ACORDEÃO + PRÉVIA FLUTUANTE DESKTOP + PROGRESSO MOBILE) */
-  function setupTreatments() {
-    const items = document.querySelectorAll('.treatment-item');
-    const preview = document.getElementById('treatmentPreview');
-    const previewImg = document.getElementById('treatmentPreviewImg');
+  /* 4. PÍLULA ABERTO / FECHADO NO HEADER + HORÁRIO DE HOJE */
+  function getClinicScheduleStatus(now = new Date()) {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      weekday: 'short',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(now);
+    const weekday = parts.find((p) => p.type === 'weekday')?.value || 'Mon';
+    let hour = parseInt(parts.find((p) => p.type === 'hour')?.value || '10', 10);
+    if (hour === 24) hour = 0;
+    const minute = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
+    const total = hour * 60 + minute;
+    const openAt = 9 * 60;
+    const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const day = dayMap[weekday] ?? 1;
 
-    items.forEach((item) => {
-      const trigger = item.querySelector('.treatment-trigger');
-      if (!trigger) return;
+    if (day >= 1 && day <= 5) {
+      if (total >= openAt && total < 19 * 60) {
+        return { isOpen: true, pill: 'Aberto agora', todayGroup: 'weekday' };
+      }
+      if (total < openAt) {
+        return { isOpen: false, pill: 'Fechado, abre hoje às 9h', todayGroup: 'weekday' };
+      }
+      return { isOpen: false, pill: 'Fechado, abre amanhã às 9h', todayGroup: 'weekday' };
+    }
 
-      trigger.addEventListener('click', () => {
-        const willOpen = !item.classList.contains('is-open');
-        items.forEach((other) => {
-          other.classList.remove('is-open');
-          const otherBtn = other.querySelector('.treatment-trigger');
-          if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+    if (day === 6) {
+      if (total >= openAt && total < 14 * 60) {
+        return { isOpen: true, pill: 'Aberto agora', todayGroup: 'saturday' };
+      }
+      if (total < openAt) {
+        return { isOpen: false, pill: 'Fechado, abre hoje às 9h', todayGroup: 'saturday' };
+      }
+      return { isOpen: false, pill: 'Fechado, abre segunda às 9h', todayGroup: 'saturday' };
+    }
+
+    return { isOpen: false, pill: 'Fechado, abre amanhã às 9h', todayGroup: 'sunday' };
+  }
+
+  function setupClinicSchedule() {
+    const status = getClinicScheduleStatus();
+    const pill = document.getElementById('headerStatusPill');
+    const pillText = document.getElementById('headerStatusText');
+    if (pill && pillText) {
+      pill.classList.toggle('is-open', status.isOpen);
+      pillText.textContent = status.pill;
+    }
+
+    document.querySelectorAll('[data-hours-group]').forEach((item) => {
+      const isToday = item.getAttribute('data-hours-group') === status.todayGroup;
+      item.classList.toggle('is-today', isToday);
+      const existingTag = item.querySelector('.hours-today-tag');
+      if (isToday && !existingTag) {
+        const tag = document.createElement('span');
+        tag.className = 'hours-today-tag';
+        tag.textContent = ' (Hoje)';
+        item.appendChild(tag);
+      }
+    });
+  }
+
+  /* 5. CARROSSEL COM DESTAQUE CENTRAL REUTILIZÁVEL */
+  function setupCarousels() {
+    const carousels = document.querySelectorAll('[data-carousel]');
+    carousels.forEach((root) => {
+      const track = root.querySelector('.carousel-track');
+      const cards = Array.from(root.querySelectorAll('.carousel-card'));
+      const dotsWrap = root.querySelector('.carousel-dots');
+      const activeCaption = root.querySelector('.space-active-bar');
+
+      if (!track || cards.length === 0) return;
+
+      const AUTO_INTERVAL_MS = 4000;
+      const desktopGridQuery = window.matchMedia('(min-width: 1100px)');
+      const isStaticGridMode = () => cards.length <= 3 && desktopGridQuery.matches;
+      root.classList.toggle('is-static-desktop', cards.length <= 3);
+
+      let activeIndex = 0;
+      let isVisibleOnScreen = false;
+      let autoTimer = null;
+      let resumeTimer = null;
+      let scrollDebounce = null;
+      let isDragging = false;
+      let dragMoved = false;
+      let suppressClick = false;
+      let startX = 0;
+      let startScrollLeft = 0;
+
+      // Criar pontos indicadores
+      const dots = cards.map((card, index) => {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'carousel-dot';
+        dot.setAttribute('aria-label', `Ir para item ${index + 1} de ${cards.length}`);
+        dot.addEventListener('click', () => {
+          goToSlide(index);
+          startAuto();
         });
-        if (willOpen) {
-          item.classList.add('is-open');
-          trigger.setAttribute('aria-expanded', 'true');
-        }
+        if (dotsWrap) dotsWrap.appendChild(dot);
+        return dot;
       });
 
-      // Prévia flutuante que acompanha o cursor no desktop
-      if (preview && previewImg && !isTouchDevice) {
-        trigger.addEventListener('mouseenter', () => {
-          if (!isDesktop()) return;
-          const src = item.getAttribute('data-preview');
-          const alt = item.getAttribute('data-preview-alt') || '';
-          if (src) {
-            previewImg.src = src;
-            previewImg.alt = alt;
-            preview.classList.add('is-visible');
+      function setActive(index) {
+        activeIndex = index;
+        cards.forEach((card, i) => {
+          card.classList.toggle('is-active', i === index);
+        });
+        dots.forEach((dot, i) => {
+          dot.setAttribute('aria-current', i === index ? 'true' : 'false');
+        });
+        if (activeCaption) {
+          const cap = cards[index]?.getAttribute('data-space-caption') || '';
+          activeCaption.textContent = cap;
+        }
+      }
+
+      function goToSlide(index, smooth = true) {
+        if (isStaticGridMode()) return;
+        const targetIndex = ((index % cards.length) + cards.length) % cards.length;
+        const card = cards[targetIndex];
+        if (!card) return;
+        const left = card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2;
+        track.scrollTo({
+          left: Math.max(0, left),
+          behavior: smooth && !prefersReducedMotion ? 'smooth' : 'auto'
+        });
+        setActive(targetIndex);
+      }
+
+      // Detectar card central com IntersectionObserver (rootMargin lateral -40%)
+      if ('IntersectionObserver' in window) {
+        let ready = false;
+        window.requestAnimationFrame(() => {
+          ready = true;
+        });
+        const centerObserver = new IntersectionObserver(
+          (entries) => {
+            if (!ready || isDragging || isStaticGridMode()) return;
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                const idx = cards.indexOf(entry.target);
+                if (idx !== -1) setActive(idx);
+              }
+            });
+          },
+          {
+            root: track,
+            rootMargin: '0px -40% 0px -40%',
+            threshold: 0.1
+          }
+        );
+        cards.forEach((card) => centerObserver.observe(card));
+      }
+
+      // Encontrar card mais próximo do centro
+      function getClosestIndex() {
+        const center = track.scrollLeft + track.clientWidth / 2;
+        let bestIdx = 0;
+        let bestDist = Infinity;
+        cards.forEach((card, i) => {
+          const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+          const dist = Math.abs(cardCenter - center);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestIdx = i;
           }
         });
-
-        trigger.addEventListener('mousemove', (e) => {
-          if (!isDesktop()) return;
-          preview.style.left = `${e.clientX + 24}px`;
-          preview.style.top = `${e.clientY - 20}px`;
-        });
-
-        trigger.addEventListener('mouseleave', () => {
-          preview.classList.remove('is-visible');
-        });
+        return bestIdx;
       }
-    });
 
-    // Barra de progresso do carrossel mobile
-    const track = document.getElementById('treatmentsTrack');
-    const fill = document.getElementById('treatmentsProgressFill');
-    if (track && fill) {
-      const updateProgress = () => {
-        const maxScroll = track.scrollWidth - track.clientWidth;
-        const ratio = maxScroll > 0 ? track.scrollLeft / maxScroll : 0;
-        // 6 cards => barra preenche proporcionalmente da 1ª à 6ª posição
-        const scale = 1 + ratio * 5;
-        fill.style.transform = `scaleX(${scale})`;
-      };
-      track.addEventListener('scroll', updateProgress, { passive: true });
-      updateProgress();
-    }
-  }
+      function findClosestToCenter() {
+        setActive(getClosestIndex());
+      }
 
-  /* 6. EQUIPE (TOQUE NO MOBILE PARA MINI BIO + COR) */
-  function setupTeamBios() {
-    const members = document.querySelectorAll('.team-member');
-    members.forEach((member) => {
-      const btn = member.querySelector('.team-bio-toggle');
-      if (!btn) return;
+      function stopAuto() {
+        if (autoTimer) {
+          window.clearInterval(autoTimer);
+          autoTimer = null;
+        }
+        if (resumeTimer) {
+          window.clearTimeout(resumeTimer);
+          resumeTimer = null;
+        }
+      }
 
-      btn.addEventListener('click', () => {
-        const isOpen = member.classList.toggle('is-bio-open');
-        btn.setAttribute('aria-expanded', String(isOpen));
-        btn.textContent = isOpen ? 'Ocultar biografia' : 'Ler biografia';
+      function startAuto() {
+        stopAuto();
+        if (isStaticGridMode() || !isVisibleOnScreen || document.hidden) return;
+        autoTimer = window.setInterval(() => {
+          goToSlide(activeIndex + 1, true);
+        }, AUTO_INTERVAL_MS);
+      }
+
+      function pauseDuringInteraction() {
+        stopAuto();
+        if (!isStaticGridMode() && isVisibleOnScreen && !document.hidden) {
+          resumeTimer = window.setTimeout(() => {
+            startAuto();
+          }, AUTO_INTERVAL_MS);
+        }
+      }
+
+      // Clique em card lateral centraliza ele no carrossel (em vez de abrir detalhes ou ignorar)
+      track.addEventListener(
+        'click',
+        (e) => {
+          if (isStaticGridMode()) return;
+          if (suppressClick) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            suppressClick = false;
+            return;
+          }
+          const clickedCard = e.target.closest('.carousel-card');
+          if (!clickedCard) return;
+          const idx = cards.indexOf(clickedCard);
+          if (idx === -1) return;
+          if (!clickedCard.classList.contains('is-active')) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            goToSlide(idx, true);
+            startAuto();
+          }
+        },
+        true
+      );
+
+      // Arrastar com o mouse no desktop para puxar o carrossel para os lados
+      track.addEventListener('pointerdown', (e) => {
+        if (isStaticGridMode() || e.pointerType !== 'mouse' || e.button !== 0) return;
+        isDragging = true;
+        dragMoved = false;
+        suppressClick = false;
+        startX = e.clientX;
+        startScrollLeft = track.scrollLeft;
+        stopAuto();
       });
-    });
-  }
 
-  /* 7. COMO FUNCIONA (LINHA VERTICAL DESENHADA NO SCROLL) */
-  function setupStepsTimeline() {
-    const section = document.getElementById('como-funciona');
-    const lineFill = document.getElementById('stepsLineFill');
-    if (!section || !lineFill) return;
-
-    if (prefersReducedMotion) {
-      lineFill.style.transform = 'scaleY(1)';
-      return;
-    }
-
-    function updateLine() {
-      const rect = section.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const start = vh * 0.72;
-      const total = rect.height * 0.75;
-      const scrolled = start - rect.top;
-      const ratio = Math.min(Math.max(scrolled / total, 0), 1);
-      lineFill.style.transform = `scaleY(${ratio})`;
-    }
-
-    window.addEventListener('scroll', updateLine, { passive: true });
-    updateLine();
-  }
-
-  /* 8. GALERIA LIGHTBOX */
-  function setupLightbox() {
-    const lightbox = document.getElementById('galleryLightbox');
-    const lightboxImg = document.getElementById('lightboxImg');
-    const lightboxCaption = document.getElementById('lightboxCaption');
-    const closeBtn = document.getElementById('lightboxClose');
-    const tiles = document.querySelectorAll('.gallery-tile');
-
-    if (!lightbox || !lightboxImg || !lightboxCaption || !closeBtn) return;
-
-    let lastFocused = null;
-
-    function openLightbox(src, alt, title) {
-      lastFocused = document.activeElement;
-      lightboxImg.src = src;
-      lightboxImg.alt = alt;
-      lightboxCaption.textContent = title;
-      lightbox.classList.add('is-open');
-      lightbox.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-      closeBtn.focus();
-    }
-
-    function closeLightbox() {
-      lightbox.classList.remove('is-open');
-      lightbox.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
-      if (lastFocused && typeof lastFocused.focus === 'function') {
-        lastFocused.focus();
-      }
-    }
-
-    tiles.forEach((tile) => {
-      tile.addEventListener('click', () => {
-        const img = tile.querySelector('img');
-        const titleEl = tile.querySelector('.gallery-tile-title');
-        if (img) {
-          openLightbox(img.getAttribute('src') || '', img.alt || '', titleEl?.textContent || '');
+      window.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        if (!dragMoved && Math.abs(dx) > 5) {
+          dragMoved = true;
+          track.classList.add('is-dragging');
+        }
+        if (dragMoved) {
+          track.scrollLeft = startScrollLeft - dx;
         }
       });
-    });
 
-    closeBtn.addEventListener('click', closeLightbox);
-    lightbox.addEventListener('click', (e) => {
-      if (e.target === lightbox) closeLightbox();
-    });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && lightbox.classList.contains('is-open')) {
-        closeLightbox();
+      function finishMouseDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        track.classList.remove('is-dragging');
+        if (dragMoved) {
+          suppressClick = true;
+          window.setTimeout(() => {
+            suppressClick = false;
+          }, 80);
+          goToSlide(getClosestIndex(), true);
+        }
+        dragMoved = false;
+        if (isVisibleOnScreen && !document.hidden) {
+          startAuto();
+        }
       }
+
+      window.addEventListener('pointerup', finishMouseDrag);
+      window.addEventListener('pointercancel', finishMouseDrag);
+
+      // Pausar enquanto usuário interage e reiniciar contagem de 4s ao finalizar
+      ['touchstart', 'mouseenter', 'focusin'].forEach((evt) => {
+        track.addEventListener(evt, pauseDuringInteraction, { passive: true });
+      });
+
+      ['mouseleave', 'touchend'].forEach((evt) => {
+        track.addEventListener(
+          evt,
+          () => {
+            if (!isDragging && isVisibleOnScreen && !document.hidden) {
+              startAuto();
+            }
+          },
+          { passive: true }
+        );
+      });
+
+      track.addEventListener(
+        'scroll',
+        () => {
+          if (isDragging || isStaticGridMode()) return;
+          window.clearTimeout(scrollDebounce);
+          scrollDebounce = window.setTimeout(() => {
+            findClosestToCenter();
+            if (isVisibleOnScreen && !document.hidden && !autoTimer) {
+              startAuto();
+            }
+          }, 120);
+        },
+        { passive: true }
+      );
+
+      // Navegação por teclado
+      root.addEventListener('keydown', (e) => {
+        if (isStaticGridMode()) return;
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          const next = (activeIndex + 1) % cards.length;
+          goToSlide(next);
+          startAuto();
+          cards[next]?.focus({ preventScroll: true });
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const prev = (activeIndex - 1 + cards.length) % cards.length;
+          goToSlide(prev);
+          startAuto();
+          cards[prev]?.focus({ preventScroll: true });
+        }
+      });
+
+      // Alternar entre grade estática (desktop <= 3 itens) e carrossel (mobile ou > 3 itens)
+      const handleViewportSwitch = () => {
+        if (isStaticGridMode()) {
+          stopAuto();
+          track.scrollLeft = 0;
+          setActive(0);
+        } else {
+          setActive(0);
+          goToSlide(0, false);
+          if (isVisibleOnScreen && !document.hidden) startAuto();
+        }
+      };
+
+      if (typeof desktopGridQuery.addEventListener === 'function') {
+        desktopGridQuery.addEventListener('change', handleViewportSwitch);
+      }
+
+      // Pausar ao sair da tela e reiniciar contagem limpa de 4s ao voltar
+      if ('IntersectionObserver' in window) {
+        const visObs = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              isVisibleOnScreen = entry.isIntersecting;
+              if (isVisibleOnScreen) startAuto();
+              else stopAuto();
+            });
+          },
+          { threshold: 0.15 }
+        );
+        visObs.observe(root);
+      } else {
+        isVisibleOnScreen = true;
+        startAuto();
+      }
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopAuto();
+        else if (isVisibleOnScreen) startAuto();
+      });
+
+      setActive(0);
     });
   }
 
-  /* 9. FAQ ACORDEÃO */
+  /* 6. GAVETA INFERIOR DE TRATAMENTO (<dialog>) */
+  function setupTreatmentDialog() {
+    const dialog = document.getElementById('treatmentDialog');
+    const titleEl = document.getElementById('dialogTitle');
+    const descEl = document.getElementById('dialogDesc');
+    const benefitsEl = document.getElementById('dialogBenefits');
+    const ctaEl = document.getElementById('dialogCta');
+    const closeBtn = document.getElementById('dialogClose');
+
+    if (!dialog || !titleEl || !descEl || !benefitsEl || !ctaEl) return;
+
+    function openDrawer(card) {
+      const title = card.getAttribute('data-title') || '';
+      const desc = card.getAttribute('data-desc') || '';
+      const benefits = (card.getAttribute('data-benefits') || '').split('|').filter(Boolean);
+      const waText = card.getAttribute('data-wa') || `Olá! Gostaria de informações sobre ${title}.`;
+
+      titleEl.textContent = title;
+      descEl.textContent = desc;
+      benefitsEl.innerHTML = '';
+      benefits.forEach((item) => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        benefitsEl.appendChild(li);
+      });
+
+      ctaEl.textContent = `Agendar ${title}`;
+      ctaEl.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(waText)}`;
+
+      if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute('open', 'true');
+      }
+    }
+
+    function closeDrawer() {
+      if (typeof dialog.close === 'function' && dialog.open) {
+        dialog.close();
+      } else {
+        dialog.removeAttribute('open');
+      }
+    }
+
+    document.querySelectorAll('.treatment-card').forEach((card) => {
+      card.addEventListener('click', () => openDrawer(card));
+    });
+
+    if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) closeDrawer();
+    });
+  }
+
+  /* 7. ACORDEÃO DE DÚVIDAS */
   function setupFaq() {
     const items = document.querySelectorAll('.faq-item');
     items.forEach((item) => {
-      const btn = item.querySelector('.faq-trigger');
+      const btn = item.querySelector('.faq-btn');
       if (!btn) return;
-
       btn.addEventListener('click', () => {
         const willOpen = !item.classList.contains('is-open');
         items.forEach((other) => {
           other.classList.remove('is-open');
-          const otherBtn = other.querySelector('.faq-trigger');
-          if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+          const b = other.querySelector('.faq-btn');
+          if (b) b.setAttribute('aria-expanded', 'false');
         });
-        if (willOpen) {
-          item.classList.add('is-open');
-          btn.setAttribute('aria-expanded', 'true');
-        }
+        item.classList.toggle('is-open', willOpen);
+        btn.setAttribute('aria-expanded', String(willOpen));
       });
     });
   }
 
-  /* 10. SELO DE HORÁRIO AO VIVO (SÃO PAULO) */
-  function setupLiveStatus() {
-    const badge = document.getElementById('clinicStatusBadge');
-    const textEl = document.getElementById('clinicStatusText');
-    if (!badge || !textEl) return;
-
-    function computeStatus(date) {
-      const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Sao_Paulo',
-        weekday: 'short',
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: false
-      });
-
-      const parts = formatter.formatToParts(date);
-      const weekdayStr = parts.find((p) => p.type === 'weekday')?.value || 'Mon';
-      const hourStr = parts.find((p) => p.type === 'hour')?.value || '10';
-      const minuteStr = parts.find((p) => p.type === 'minute')?.value || '00';
-
-      const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-      const day = dayMap[weekdayStr] ?? 1;
-      let hour = parseInt(hourStr, 10);
-      if (hour === 24) hour = 0;
-      const minute = parseInt(minuteStr, 10);
-      const mins = hour * 60 + minute;
-
-      if (day >= 1 && day <= 5) {
-        if (mins >= 9 * 60 && mins < 19 * 60) {
-          return { open: true, label: 'Aberto agora, fecha às 19h' };
-        }
-        if (mins < 9 * 60) {
-          return { open: false, label: 'Fechado, abre hoje às 9h' };
-        }
-        return { open: false, label: 'Fechado, abre amanhã às 9h' };
-      }
-
-      if (day === 6) {
-        if (mins >= 9 * 60 && mins < 14 * 60) {
-          return { open: true, label: 'Aberto agora, fecha às 14h' };
-        }
-        if (mins < 9 * 60) {
-          return { open: false, label: 'Fechado, abre hoje às 9h' };
-        }
-        return { open: false, label: 'Fechado, abre segunda às 9h' };
-      }
-
-      return { open: false, label: 'Fechado, abre amanhã às 9h' };
+  /* 8. REVELAÇÃO AO ROLAR (INTERSECTION OBSERVER — EXECUTA 1 VEZ) */
+  function setupReveal() {
+    const items = document.querySelectorAll('[data-reveal]');
+    if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+      items.forEach((el) => el.classList.add('is-visible'));
+      return;
     }
 
-    const status = computeStatus(new Date());
-    badge.classList.toggle('is-open', status.open);
-    textEl.textContent = status.label;
-  }
-
-  /* 11. FORMULÁRIO COM MÁSCARA, VALIDAÇÃO INLINE E WHATSAPP */
-  function setupForm() {
-    const form = document.getElementById('appointmentForm');
-    if (!form) return;
-
-    const nameInput = document.getElementById('inputName');
-    const phoneInput = document.getElementById('inputPhone');
-    const treatmentSelect = document.getElementById('selectTreatment');
-    const timeSelect = document.getElementById('selectTime');
-    const notesInput = document.getElementById('inputNotes');
-
-    if (phoneInput) {
-      phoneInput.addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\D/g, '').slice(0, 11);
-        if (v.length > 6) {
-          e.target.value = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-        } else if (v.length > 2) {
-          e.target.value = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-        } else if (v.length > 0) {
-          e.target.value = `(${v}`;
-        } else {
-          e.target.value = '';
-        }
-        clearError(phoneInput);
-      });
-    }
-
-    function setError(input, msg) {
-      const field = input.closest('.field');
-      if (!field) return;
-      field.classList.add('has-error');
-      const errorEl = field.querySelector('.field-error');
-      if (errorEl) errorEl.textContent = msg;
-      input.setAttribute('aria-invalid', 'true');
-    }
-
-    function clearError(input) {
-      const field = input.closest('.field');
-      if (!field) return;
-      field.classList.remove('has-error');
-      const errorEl = field.querySelector('.field-error');
-      if (errorEl) errorEl.textContent = '';
-      input.removeAttribute('aria-invalid');
-    }
-
-    [nameInput, treatmentSelect].forEach((el) => {
-      if (el) {
-        el.addEventListener('input', () => clearError(el));
-        el.addEventListener('change', () => clearError(el));
-      }
-    });
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      const name = nameInput ? nameInput.value.trim() : '';
-      const phone = phoneInput ? phoneInput.value.trim() : '';
-      const digits = phone.replace(/\D/g, '');
-      const treatment = treatmentSelect ? treatmentSelect.value : '';
-      const preferredTime = timeSelect ? timeSelect.value : 'Qualquer horário';
-      const notes = notesInput ? notesInput.value.trim() : '';
-
-      let firstInvalid = null;
-
-      if (!name) {
-        setError(nameInput, 'Informe seu nome completo.');
-        firstInvalid = firstInvalid || nameInput;
-      } else {
-        clearError(nameInput);
-      }
-
-      if (digits.length < 10 || digits.length > 11) {
-        setError(phoneInput, 'Informe um telefone ou WhatsApp válido com DDD.');
-        firstInvalid = firstInvalid || phoneInput;
-      } else {
-        clearError(phoneInput);
-      }
-
-      if (!treatment) {
-        setError(treatmentSelect, 'Selecione um tratamento de interesse.');
-        firstInvalid = firstInvalid || treatmentSelect;
-      } else {
-        clearError(treatmentSelect);
-      }
-
-      if (firstInvalid) {
-        firstInvalid.focus();
-        return;
-      }
-
-      let message = `Olá! Gostaria de agendar uma avaliação na Clínica Lumière Estética.\n\n`;
-      message += `*Nome:* ${name}\n`;
-      message += `*Telefone:* ${phone}\n`;
-      message += `*Interesse:* ${treatment}\n`;
-      message += `*Período preferencial:* ${preferredTime}`;
-      if (notes) {
-        message += `\n*Observações:* ${notes}`;
-      }
-
-      const whatsappUrl = `https://wa.me/5511999998888?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-    });
-  }
-
-  /* 12. MOVIMENTO DE DESKTOP (LENIS, GSAP SCROLLTRIGGER, PARALLAX, CURSOR E MAGNETIC HOVER) */
-  function setupDesktopMotion() {
-    if (prefersReducedMotion || isTouchDevice || !isDesktop()) return;
-
-    // Lenis Smooth Scroll somente no desktop
-    if (typeof window.Lenis === 'function') {
-      const lenis = new window.Lenis({
-        duration: 1.15,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        smoothWheel: true
-      });
-
-      function raf(time) {
-        lenis.raf(time);
-        requestAnimationFrame(raf);
-      }
-      requestAnimationFrame(raf);
-
-      if (window.gsap && window.ScrollTrigger) {
-        lenis.on('scroll', window.ScrollTrigger.update);
-      }
-    }
-
-    // GSAP ScrollTrigger: revelações com deslocamento 24px e parallax suave (<= 8%)
-    if (window.gsap && window.ScrollTrigger) {
-      window.gsap.registerPlugin(window.ScrollTrigger);
-
-      const revealGroups = document.querySelectorAll('[data-reveal-group]');
-      revealGroups.forEach((group) => {
-        const children = group.querySelectorAll('[data-reveal]');
-        if (!children.length) return;
-        window.gsap.from(children, {
-          y: 24,
-          opacity: 0,
-          duration: 0.75,
-          stagger: 0.08,
-          ease: 'power3.out',
-          clearProps: 'transform,opacity',
-          scrollTrigger: {
-            trigger: group,
-            start: 'top 84%',
-            once: true
+    const obs = new IntersectionObserver(
+      (entries, observer) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
           }
         });
-      });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -24px 0px' }
+    );
 
-      const parallaxEls = document.querySelectorAll('[data-parallax]');
-      parallaxEls.forEach((el) => {
-        const shift = parseFloat(el.getAttribute('data-parallax') || '6');
-        window.gsap.to(el, {
-          yPercent: shift,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: el,
-            start: 'top bottom',
-            end: 'bottom top',
-            scrub: true
-          }
-        });
-      });
-    }
-
-    // Cursor customizado sutil
-    const cursor = document.getElementById('customCursor');
-    if (cursor) {
-      window.addEventListener('mousemove', (e) => {
-        cursor.style.left = `${e.clientX}px`;
-        cursor.style.top = `${e.clientY}px`;
-        cursor.classList.add('is-visible');
-      });
-
-      document.addEventListener('mouseleave', () => {
-        cursor.classList.remove('is-visible');
-      });
-
-      const hoverTargets = document.querySelectorAll('a, button, .gallery-tile, .team-portrait');
-      hoverTargets.forEach((target) => {
-        target.addEventListener('mouseenter', () => cursor.classList.add('is-hovering'));
-        target.addEventListener('mouseleave', () => cursor.classList.remove('is-hovering'));
-      });
-    }
-
-    // Hover magnético sutil nos botões primários
-    const magneticBtns = document.querySelectorAll('.btn-pill--primary');
-    magneticBtns.forEach((btn) => {
-      btn.addEventListener('mousemove', (e) => {
-        const rect = btn.getBoundingClientRect();
-        const x = (e.clientX - rect.left - rect.width / 2) * 0.14;
-        const y = (e.clientY - rect.top - rect.height / 2) * 0.14;
-        btn.style.transform = `translate(${x}px, ${y}px)`;
-      });
-      btn.addEventListener('mouseleave', () => {
-        btn.style.transform = '';
-      });
-    });
+    items.forEach((el) => obs.observe(el));
   }
 
-  /* INICIALIZAÇÃO */
   document.addEventListener('DOMContentLoaded', () => {
     setupImageFallbacks();
-    setupScrollChrome();
-    setupMobileMenu();
-    setupCounters();
-    setupTreatments();
-    setupTeamBios();
-    setupStepsTimeline();
-    setupLightbox();
+    setupHeaderAndMenu();
+    setupMobileBar();
+    setupClinicSchedule();
+    setupCarousels();
+    setupTreatmentDialog();
     setupFaq();
-    setupLiveStatus();
-    setupForm();
-    setupDesktopMotion();
+    setupReveal();
   });
 })();
