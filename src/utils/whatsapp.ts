@@ -18,13 +18,13 @@ export function formatWhatsAppMessage(data: AppointmentFormData): string {
   const cleanNotes = data.notes?.trim();
 
   let message = `Olá! Gostaria de agendar uma avaliação na Clínica Lumière Estética.\n\n`;
-  message += `👤 *Nome:* ${cleanName}\n`;
-  message += `📱 *Telefone:* ${cleanPhone}\n`;
-  message += `✨ *Interesse:* ${cleanTreatment}\n`;
-  message += `🕒 *Período preferencial:* ${cleanTime}`;
+  message += `*Nome:* ${cleanName}\n`;
+  message += `*Telefone:* ${cleanPhone}\n`;
+  message += `*Interesse:* ${cleanTreatment}\n`;
+  message += `*Período preferencial:* ${cleanTime}`;
 
   if (cleanNotes) {
-    message += `\n💬 *Observações:* ${cleanNotes}`;
+    message += `\n*Observações:* ${cleanNotes}`;
   }
 
   return message;
