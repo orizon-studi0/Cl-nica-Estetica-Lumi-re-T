@@ -89,22 +89,6 @@
     });
   }
 
-  /* 3. BARRA INFERIOR MOBILE (ESCONDE PERTO DO FORMULÁRIO) */
-  function setupMobileBar() {
-    const bar = document.getElementById('mobileBottomBar');
-    const contactSec = document.getElementById('localizacao');
-    if (!bar || !contactSec || !('IntersectionObserver' in window)) return;
-
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          bar.classList.toggle('is-hidden', entry.isIntersecting);
-        });
-      },
-      { threshold: 0.08 }
-    );
-    obs.observe(contactSec);
-  }
 
   /* 4. PÍLULA ABERTO / FECHADO NO HEADER + HORÁRIO DE HOJE */
   function getClinicScheduleStatus(now = new Date()) {
@@ -573,7 +557,6 @@
   document.addEventListener('DOMContentLoaded', () => {
     setupImageFallbacks();
     setupHeaderAndMenu();
-    setupMobileBar();
     setupClinicSchedule();
     setupCarousels();
     setupTreatmentDialog();
